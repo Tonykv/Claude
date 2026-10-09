@@ -1,0 +1,2 @@
+# Claude
+Claude prvni spusteni 
