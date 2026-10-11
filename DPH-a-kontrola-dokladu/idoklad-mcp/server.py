@@ -7,8 +7,9 @@ Nástroje:
   - kontrola_prijatych_faktur(obdobi)  – duplicity (VS + externí číslo + částka),
                                           chybějící členění DPH na řádcích,
                                           datum pořízení dokladu = dnešní datum
-  - nahled_priznani_dph(obdobi)        – přijaté (dle data přijetí) + vydané (dle DUZP),
-                                          součet DPH: přijaté +, vydané ×(−1)
+  - nahled_priznani_dph(obdobi)        – přijaté faktury (dle data přijetí), přijaté účtenky
+                                          (dle DateOfIssue) + vydané (dle DUZP),
+                                          součet DPH: přijaté a účtenky +, vydané ×(−1)
   - idoklad_get(path, params)          – obecné čtení libovolného endpointu (diagnostika)
 
 Spuštění:
@@ -45,6 +46,7 @@ PAGE_SIZE = 100
 F = {
     "received_date_filter": "DateOfReceiving",   # datum přijetí (přijaté faktury)
     "issued_date_filter": "DateOfTaxing",        # DUZP (vydané faktury)
+    "receipt_date_filter": "DateOfIssue",        # datum dokladu (přijaté účtenky)
     "doc_number": ["DocumentNumber"],
     "vs": ["VariableSymbol"],
     "external_number": ["ReceivedDocumentNumber", "OriginalDocumentNumber", "ExternalDocumentNumber"],
@@ -199,6 +201,21 @@ class IDokladClient:
 # Byznys logika (čisté funkce – testovatelné bez API)
 # --------------------------------------------------------------------------- #
 
+def summarize_receipt(doc: dict) -> dict:
+    """Přijatá účtenka – rozhoduje datum dokladu (DateOfIssue)."""
+    return {
+        "id": doc.get("Id"),
+        "cislo_dokladu": get_field(doc, F["doc_number"]),
+        "externi_cislo": get_field(doc, F["external_number"]),
+        "partner": get_field(doc, F["partner"]),
+        "popis": get_field(doc, F["description"]),
+        "datum_dokladu": day(get_field(doc, F["date_issue"])),
+        "bez_dph": money(dec(get_field(doc, F["total_without_vat"]))),
+        "dph": money(dec(get_field(doc, F["total_vat"]))),
+        "celkem": money(dec(get_field(doc, F["total_with_vat"]))),
+    }
+
+
 def summarize_doc(doc: dict, kind: str) -> dict:
     return {
         "id": doc.get("Id"),
@@ -292,39 +309,42 @@ def build_control(received_docs: list[dict], label: str, today: date) -> dict:
     }
 
 
-def build_preview(received_docs: list[dict], issued_docs: list[dict], label: str) -> dict:
+def _section(rows: list[dict], kriterium: str) -> dict:
+    return {
+        "kriterium": kriterium,
+        "pocet": len(rows),
+        "soucet_bez_dph": money(sum((dec(r["bez_dph"]) for r in rows), Decimal("0"))),
+        "soucet_dph": money(sum((dec(r["dph"]) for r in rows), Decimal("0"))),
+        "soucet_celkem": money(sum((dec(r["celkem"]) for r in rows), Decimal("0"))),
+        "polozky": rows,
+    }
+
+
+def build_preview(received_docs: list[dict], issued_docs: list[dict], label: str,
+                  receipt_docs: list[dict] | None = None) -> dict:
     rec = [summarize_doc(d, "prijata") for d in received_docs]
     iss = [summarize_doc(d, "vydana") for d in issued_docs]
+    rcp = [summarize_receipt(d) for d in (receipt_docs or [])]
     rec_vat = sum((dec(r["dph"]) for r in rec), Decimal("0"))
+    rcp_vat = sum((dec(r["dph"]) for r in rcp), Decimal("0"))
     iss_vat = sum((dec(r["dph"]) for r in iss), Decimal("0"))
-    saldo = rec_vat + (iss_vat * -1)
+    saldo = rec_vat + rcp_vat + (iss_vat * -1)
     return {
         "obdobi": label,
-        "prijate_faktury": {
-            "kriterium": "datum přijetí v období",
-            "pocet": len(rec),
-            "soucet_bez_dph": money(sum((dec(r["bez_dph"]) for r in rec), Decimal("0"))),
-            "soucet_dph": money(rec_vat),
-            "soucet_celkem": money(sum((dec(r["celkem"]) for r in rec), Decimal("0"))),
-            "polozky": rec,
-        },
-        "vydane_faktury": {
-            "kriterium": "DUZP v období",
-            "pocet": len(iss),
-            "soucet_bez_dph": money(sum((dec(r["bez_dph"]) for r in iss), Decimal("0"))),
-            "soucet_dph": money(iss_vat),
-            "soucet_celkem": money(sum((dec(r["celkem"]) for r in iss), Decimal("0"))),
-            "polozky": iss,
-        },
+        "prijate_faktury": _section(rec, "datum přijetí v období"),
+        "prijate_uctenky": _section(rcp, "datum dokladu (DateOfIssue) v období"),
+        "vydane_faktury": _section(iss, "DUZP v období"),
         "vypocet_dph": {
             "dph_prijate": money(rec_vat),
+            "dph_prijate_uctenky": money(rcp_vat),
             "dph_vydane_krat_minus_1": money(iss_vat * -1),
             "saldo": money(saldo),
             "vyklad": ("Záporné saldo = vlastní daňová povinnost (k úhradě)"
                        if saldo < 0 else "Kladné saldo = nadměrný odpočet"
                        if saldo > 0 else "Saldo je nulové"),
         },
-        "poznamka": "Dobropisy, prodejky a pokladní doklady nejsou zahrnuty.",
+        "poznamka": "Dobropisy, prodejky a pokladní doklady nejsou zahrnuty. "
+                    "Saldo = DPH přijatých faktur + DPH přijatých účtenek + DPH vydaných × (−1).",
     }
 
 
@@ -368,13 +388,16 @@ def kontrola_prijatych_faktur(obdobi: str) -> dict:
 def nahled_priznani_dph(obdobi: str) -> dict:
     """Náhled přiznání k DPH za čtvrtletí.
 
-    Přijaté faktury podle data přijetí, vydané faktury podle DUZP; u každé VS, popis,
-    částka bez DPH, DPH a celkem. Saldo DPH = DPH přijatých + DPH vydaných × (−1).
+    Přijaté faktury podle data přijetí, přijaté účtenky podle data dokladu (DateOfIssue),
+    vydané faktury podle DUZP; u každé číslo, VS/datum, popis, bez DPH, DPH a celkem.
+    Saldo DPH = DPH přijatých faktur + DPH přijatých účtenek + DPH vydaných × (−1).
     obdobi: např. 'Q3 2026', '3/2026' nebo '3. čtvrtletí 2026'.
     """
     start, end, label = parse_quarter(obdobi)
-    issued = client().list_all("IssuedInvoices", F["issued_date_filter"], start, end)
-    return build_preview(_received(start, end), issued, label)
+    c = client()
+    issued = c.list_all("IssuedInvoices", F["issued_date_filter"], start, end)
+    receipts = c.list_all("ReceivedReceipts", F["receipt_date_filter"], start, end)
+    return build_preview(_received(start, end), issued, label, receipts)
 
 
 @mcp.tool()

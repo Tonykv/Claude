@@ -7,7 +7,7 @@ MCP server, který Claude zpřístupní data z iDokladu (API v3). Server **jen �
 | Nástroj | Co dělá |
 |---|---|
 | `kontrola_prijatych_faktur(obdobi)` | Přijaté faktury podle **data přijetí** v daném čtvrtletí. Hledá duplicity (stejný VS + externí číslo + celková částka), řádky bez **členění DPH** a doklady s **datem pořízení** (založení v iDokladu) rovným dnešku. |
-| `nahled_priznani_dph(obdobi)` | Přijaté faktury (datum přijetí) a vydané faktury (**DUZP**): číslo, VS, popis, bez DPH, DPH, celkem. Saldo = DPH přijatých + DPH vydaných × (−1). Záporné saldo znamená daň k úhradě. |
+| `nahled_priznani_dph(obdobi)` | Přijaté faktury (datum přijetí), přijaté účtenky (**DateOfIssue**) a vydané faktury (**DUZP**): číslo, VS / datum, popis, bez DPH, DPH, celkem. Saldo = DPH přijatých faktur + DPH přijatých účtenek + DPH vydaných × (−1). Záporné saldo znamená daň k úhradě. |
 | `idoklad_get(path, filter)` | Obecné čtení z API, slouží k diagnostice a ověření názvů polí. |
 
 Období lze zadat jako `Q3 2026`, `2026-Q3`, `3/2026` nebo `3. čtvrtletí 2026`.
