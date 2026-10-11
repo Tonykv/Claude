@@ -49,7 +49,7 @@ F = {
     "vs": ["VariableSymbol"],
     "external_number": ["ReceivedDocumentNumber", "OriginalDocumentNumber", "ExternalDocumentNumber"],
     "description": ["Description"],
-    "partner": ["PartnerName", "Partner.CompanyName", "SupplierName", "PurchaserName"],
+    "partner": ["PartnerAddress.NickName", "PartnerName", "Partner.CompanyName"],
     "date_issue": ["DateOfIssue"],
     # datum pořízení = kdy byl záznam v iDokladu založen (název pole ověř přes idoklad_get)
     "date_created": ["Metadata.DateCreated", "Metadata.CreatedDate", "DateCreated",
