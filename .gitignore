@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets – nikdy necommitovat
+.env
+*.env
+claude_desktop_config.json
