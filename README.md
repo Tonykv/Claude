@@ -1,2 +1,3 @@
 # Claude
-Claude prvni spusteni 
+
+A repository for daily work with Claude.
