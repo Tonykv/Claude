@@ -1,14 +1,14 @@
 # Claude
 
-Repozitář projektů pro Claude (Claude Desktop, Claude Code). Každý projekt má vlastní složku s vlastním README.
+Repozitář projektů pro Claude (Claude Desktop, Claude Code). Každý projekt má vlastní složku ve [`projects/`](projects/) s vlastním README.
 
 ## Projekty
 
 | Složka | Popis |
 |---|---|
-| [`DPH-a-kontrola-dokladu/`](DPH-a-kontrola-dokladu/) | Čtvrtletní kontrola přijatých faktur a náhled přiznání k DPH z iDokladu. Obsahuje lokální MCP server [`idoklad-mcp`](DPH-a-kontrola-dokladu/idoklad-mcp/). |
-| [`garmin-mcp/`](garmin-mcp/) | MCP server, který zpřístupňuje data o váze z Garmin Health API. |
-| [`cv/`](cv/) | Verze životopisu ve formátu PDF (grid a career timeline). |
+| [`projects/DPH-a-kontrola-dokladu/`](projects/DPH-a-kontrola-dokladu/) | Čtvrtletní kontrola přijatých faktur a náhled přiznání k DPH z iDokladu. Obsahuje lokální MCP server [`idoklad-mcp`](projects/DPH-a-kontrola-dokladu/idoklad-mcp/). |
+| [`projects/garmin-mcp/`](projects/garmin-mcp/) | MCP server, který zpřístupňuje data o váze z Garmin Health API. |
+| [`projects/cv/`](projects/cv/) | Verze životopisu ve formátu PDF (grid a career timeline). |
 
 ## Skills pro Claude Code
 
@@ -18,5 +18,5 @@ Repozitář projektů pro Claude (Claude Desktop, Claude Code). Každý projekt 
 
 ## Konvence
 
-- Nový projekt = nová složka v kořeni repozitáře s vlastním `README.md`.
+- Nový projekt = nová složka v `projects/` s vlastním `README.md`.
 - Tajné údaje (`.env`, `claude_desktop_config.json`) se necommitují, viz [`.gitignore`](.gitignore).

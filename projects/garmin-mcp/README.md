@@ -25,7 +25,7 @@ Example MCP client entry (stdio transport):
 {
   "mcpServers": {
     "garmin": {
-      "command": "C:\\claude\\garmin-mcp\\.venv\\Scripts\\garmin-mcp.exe",
+      "command": "C:\\claude\\projects\\garmin-mcp\\.venv\\Scripts\\garmin-mcp.exe",
       "env": { "GARMIN_ACCESS_TOKEN": "<user access token>" }
     }
   }
